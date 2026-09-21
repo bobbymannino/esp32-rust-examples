@@ -17,13 +17,13 @@ fn main() -> Result<(), EspError> {
 
     let peripherals = Peripherals::take()?;
 
-    let tx = peripherals.pins.gpio17;
-    let rx = peripherals.pins.gpio16;
+    let tx = peripherals.pins.gpio1;
+    let rx = peripherals.pins.gpio3;
 
     let config = Config::new().baudrate(Hertz(115_200));
 
     let uart = UartDriver::new(
-        peripherals.uart1,
+        peripherals.uart0,
         tx,
         rx,
         Option::<gpio::AnyIOPin>::None,
@@ -33,7 +33,7 @@ fn main() -> Result<(), EspError> {
 
     log::info!("UART ready");
     loop {
-        match uart.write(&[0x00]) {
+        match uart.write(&[0x01]) {
             Ok(len) => log::info!("{len} bytes written successfully"),
             Err(e) => log::error!("write error: {e:?}"),
         }
