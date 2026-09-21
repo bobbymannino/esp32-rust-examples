@@ -41,9 +41,11 @@ fn main() -> Result<(), EspError> {
             Ok(len) => {
                 log::info!("Read {len} bytes:");
                 log::info!("  {}", String::from_utf8_lossy(&buf));
+                match uart.write(&buf[..len]) {
+                    Err(e) => log::error!("Write error: {e:?}"),
+                    Ok(_) => log::info!("Write successful"),
+                }
             }
         }
-
-        // TODO somehow read back commands from device.
     }
 }
