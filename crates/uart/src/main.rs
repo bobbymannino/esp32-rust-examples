@@ -33,21 +33,17 @@ fn main() -> Result<(), EspError> {
 
     log::info!("UART ready");
     loop {
-        match uart.write(&[0x01]) {
-            Ok(len) => log::info!("{len} bytes written successfully"),
-            Err(e) => log::error!("write error: {e:?}"),
-        }
-
-        FreeRtos::delay_ms(500);
-
-        let timeout = TickType::from(Duration::from_secs(1)).ticks();
         let mut buf = [0_u8; 64];
+        let timeout = TickType::from(Duration::from_secs(1)).ticks();
         match uart.read(&mut buf, timeout) {
-            Ok(0) => log::error!("no bytes read"),
-            Ok(len) => log::info!("{len} bytes read successfully"),
-            Err(e) => log::error!("read error: {e:?}"),
+            Ok(0) => log::info!("No bytes read"),
+            Err(e) => log::error!("Read error: {e:?}"),
+            Ok(len) => {
+                log::info!("Read {len} bytes:");
+                log::info!("  {}", String::from_utf8_lossy(&buf));
+            }
         }
 
-        FreeRtos::delay_ms(500);
+        // TODO somehow read back commands from device.
     }
 }
