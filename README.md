@@ -20,3 +20,4 @@ a set of useful examples for concepts such as WiFi, bluetooth, UART, etc.
 | WiFi WPA Enterprise                | Connect to WiFi using WPA Enterprise authentication |    ❌    |
 | Bluetooth RX                       | use the ESP32 as a bluetooth receiver               |    ❌    |
 | Bluetooth TX                       | use the ESP32 as a bluetooth transmitter            |    ❌    |
+| API Client                         | Execute HTTP requests                               |    ✅    |
