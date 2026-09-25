@@ -1,0 +1,23 @@
+[package]
+name = "wifi-wpa"
+version = "0.1.0"
+edition = "2024"
+resolver = "2"
+
+[dependencies]
+log = "0.4"
+esp-idf-svc = "0.53"
+anyhow = "1.0"
+
+[profile.dev]
+opt-level = "z"
+
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[build-dependencies]
+embuild = "0.33"
