@@ -17,7 +17,7 @@ const TOKEN: &str = env!("TOKEN", "set TOKEN to use as the bearer token");
 const IP: &str = env!("IP", "set IP to the IP address of the API server");
 const PORT: u16 = env!("PORT", "set PORT to the port of the API server")
     .parse()
-    .unwrap_or(80);
+    .unwrap_or(2212);
 
 fn main() {
     esp_idf_svc::sys::link_patches();
