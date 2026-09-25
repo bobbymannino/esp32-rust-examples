@@ -2,6 +2,10 @@ use anyhow::{Context, anyhow};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{delay::FreeRtos, peripherals::Peripherals},
+    http::{
+        Method,
+        client::{Configuration as HttpConfiguration, EspHttpConnection},
+    },
     nvs::EspDefaultNvsPartition,
     wifi::{AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi, PmfConfiguration},
 };
@@ -9,15 +13,18 @@ use esp_idf_svc::{
 /// Credentials are baked in at compile time so they never have to live in the repository.
 ///
 /// ```sh
-/// WIFI_SSID="My Network" WIFI_PASSWORD="hunter2" TOKEN="xyz" IP="192.168.1.1" PORT=80 cargo run
+/// WIFI_SSID="My Network" WIFI_PASSWORD="hunter2" IP="192.168.1.1" PORT=80 cargo run
 /// ```
 const SSID: &str = env!("WIFI_SSID", "set WIFI_SSID to the network to join");
 const PASSWORD: &str = env!("WIFI_PASSWORD", "set WIFI_PASSWORD to the network's password");
-const TOKEN: &str = env!("TOKEN", "set TOKEN to use as the bearer token");
 const IP: &str = env!("IP", "set IP to the IP address of the API server");
-const PORT: u16 = env!("PORT", "set PORT to the port of the API server")
-    .parse()
-    .unwrap_or(2212);
+const PORT: u16 = match u16::from_str_radix(env!("PORT", "set PORT to the port of the API server"), 10) {
+    Ok(port) => port,
+    Err(_) => panic!("PORT must be a number between 0 and 65535"),
+};
+
+/// Time between HTTP requests
+const POLL_GAP_MS: u32 = 5_000;
 
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -65,7 +72,66 @@ fn run() -> anyhow::Result<()> {
     wifi.wait_netif_up().context("associated but never got an IP address")?;
     log_connection(&wifi)?;
 
-    todo!()
+    let mut client = ApiClient::new(IP, PORT)?;
+
+    for count in 0u32.. {
+        let body = format!("hello from the ESP32, message #{count}");
+        // A single failed request (server restarting, packet loss) should not bring the whole device down.
+        match client.post("/api/post", &body) {
+            Ok(status) => log::info!("POST #{count} returned {status}"),
+            Err(e) => log::error!("POST #{count} failed: {e:?}"),
+        }
+        FreeRtos::delay_ms(POLL_GAP_MS);
+    }
+
+    Ok(())
+}
+
+/// A tiny HTTP client for the API server.
+///
+/// The underlying connection is reused between requests, so the TCP socket is kept alive rather than reopened for
+/// every call.
+struct ApiClient {
+    connection: EspHttpConnection,
+    base_url: String,
+}
+
+impl ApiClient {
+    fn new(ip: &str, port: u16) -> anyhow::Result<Self> {
+        let connection = EspHttpConnection::new(&HttpConfiguration {
+            timeout: Some(core::time::Duration::from_secs(10)),
+            ..Default::default()
+        })
+        .context("failed to create the HTTP connection")?;
+
+        Ok(Self {
+            connection,
+            base_url: format!("http://{ip}:{port}"),
+        })
+    }
+
+    /// Sends `body` as plain text to `path` and returns the response's status code.
+    fn post(&mut self, path: &str, body: &str) -> anyhow::Result<u16> {
+        let url = format!("{}{path}", self.base_url);
+        // Giving the length up front stops the client falling back to chunked transfer encoding.
+        let content_length = body.len().to_string();
+        let headers = [
+            ("Content-Type", "text/plain"),
+            ("Content-Length", content_length.as_str()),
+        ];
+
+        self.connection
+            .initiate_request(Method::Post, &url, &headers)
+            .with_context(|| format!("failed to open a request to {url}"))?;
+        self.connection
+            .write_all(body.as_bytes())
+            .context("failed to send the request body")?;
+        self.connection
+            .initiate_response()
+            .context("failed to read the response")?;
+
+        Ok(self.connection.status())
+    }
 }
 
 /// Scans the air for [`SSID`] so the security the access point actually advertises can be used.
