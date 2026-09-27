@@ -1300,6 +1300,7 @@ dependencies = [
 name = "template"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "embuild",
  "esp-idf-svc",
  "log",
