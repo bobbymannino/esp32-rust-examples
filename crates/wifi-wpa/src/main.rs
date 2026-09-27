@@ -3,6 +3,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{delay::FreeRtos, peripherals::Peripherals},
     nvs::EspDefaultNvsPartition,
+    sys::{esp, esp_wifi_restore},
     wifi::{AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi, PmfConfiguration},
 };
 
@@ -148,6 +149,29 @@ fn log_connection(wifi: &BlockingWifi<EspWifi<'_>>) -> anyhow::Result<()> {
     log::info!("  IP address: {}", ip_info.ip);
     log::info!("  Gateway:    {}", ip_info.subnet.gateway);
     log::info!("  DNS:        {:?}", ip_info.dns);
+
+    Ok(())
+}
+
+/// Shuts Wi-Fi down completely: leaves the network, powers the radio off, forgets the saved configuration and frees
+/// the driver.
+///
+/// Wi-Fi is never on unless something starts it, so this is only needed to turn it off part way through a program,
+/// for example to save power once the network is no longer needed.
+fn disable_wifi(mut wifi: BlockingWifi<EspWifi<'_>>) -> anyhow::Result<()> {
+    if wifi.is_connected()? {
+        wifi.disconnect()?;
+    }
+
+    if wifi.is_started()? {
+        wifi.stop()?;
+    }
+
+    // The driver saves its configuration, credentials included, to NVS. Wipe it so they do not outlive this program.
+    esp!(unsafe { esp_wifi_restore() })?;
+
+    // Dropping the driver deinitialises it, which releases its memory and the modem peripheral.
+    drop(wifi);
 
     Ok(())
 }
