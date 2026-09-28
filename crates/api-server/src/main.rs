@@ -11,6 +11,7 @@ use esp_idf_svc::{
     },
     io::Write,
     nvs::EspDefaultNvsPartition,
+    sys::{settimeofday, time_t, timeval},
 };
 
 /// Credentials are baked in at compile time so they never have to live in the repository.
@@ -66,4 +67,14 @@ fn rtc_seconds() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0)
+}
+
+/// Sets the RTC to `seconds` since the Unix epoch (UTC).
+fn set_rtc_seconds(seconds: u64) -> anyhow::Result<()> {
+    let time = timeval {
+        tv_sec: time_t::try_from(seconds)?,
+        tv_usec: 0,
+    };
+    esp_idf_svc::sys::esp!(unsafe { settimeofday(&time, std::ptr::null()) })?;
+    Ok(())
 }
