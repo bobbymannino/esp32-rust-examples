@@ -1,7 +1,10 @@
 use std::{convert::Infallible, time::Duration};
 
 use esp_idf_svc::{
-    hal::sleep::{DeepSleep, LightSleep},
+    hal::{
+        gpio::{Input, Level, PinDriver, RtcInput},
+        sleep::{DeepSleep, LightSleep, RtcWakeLevel},
+    },
     sys::{self, EspError, esp},
 };
 
@@ -52,6 +55,37 @@ fn light_sleep(duration: Duration) -> Result<(), EspError> {
 #[allow(dead_code)]
 fn deep_sleep(duration: Duration) -> Result<Infallible, EspError> {
     DeepSleep::new()?.wakeup_on_timer(duration)?.enter()
+}
+
+/// Pause the CPU until `pin` changes level, e.g. the INT1 pin of an ADXL345
+/// firing on activity. RAM is retained, so execution carries on from here once
+/// the chip wakes.
+///
+/// The ESP32 can only wake on a level, not an edge, so this wakes on whichever
+/// level the pin is not currently at. The sensor has to release its interrupt
+/// (for an ADXL345, read `INT_SOURCE`) before sleeping again, otherwise the
+/// chip wakes straight back up.
+#[allow(dead_code)]
+fn light_sleep_until_pin_change(pin: &PinDriver<Input>) -> Result<(), EspError> {
+    LightSleep::new()?.wakeup_on_gpio(pin, !pin.get_level())?.enter()
+}
+
+/// Power off everything except the RTC domain until `pin` changes level, e.g.
+/// the INT1 pin of an ADXL345 firing on activity. Waking up is a full reboot,
+/// so this only returns if setting up the wake up pin fails.
+///
+/// Only RTC GPIOs can wake the chip from deep sleep (on the ESP32: 0, 2, 4,
+/// 12-15, 25-27 and 32-39), which is why the pin must be an `RtcInput`. Like
+/// light sleep this wakes on a level, so it wakes on whichever level the pin is
+/// not currently at.
+#[allow(dead_code)]
+fn deep_sleep_until_pin_change(pin: &PinDriver<RtcInput>) -> Result<Infallible, EspError> {
+    let level = match pin.get_level() {
+        Level::Low => RtcWakeLevel::AnyHigh,
+        Level::High => RtcWakeLevel::AllLow,
+    };
+
+    DeepSleep::new()?.wakeup_on_rtc(pin, level)?.enter()
 }
 
 /// Deep sleep with the RTC peripherals and RTC memory also powered off, leaving
