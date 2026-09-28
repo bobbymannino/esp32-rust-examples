@@ -21,4 +21,4 @@ a set of useful examples for concepts such as WiFi, bluetooth, UART, etc.
 | [Bluetooth](crates/bluetooth/)     | Connect to Bluetooth devices                        |    ✅    |
 | [API Client](crates/api-client/)   | Execute HTTP requests                               |    ✅    |
 | API Server                         | Host HTTP endpoints on the ESP32                    |    ❌    |
-| Power/Sleep Modes                  | Different power and sleep modes                     |    ❌    |
+| [Power Modes](crates/power-modes/) | Different power and sleep modes                     |    🏗️    |
