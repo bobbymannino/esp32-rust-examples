@@ -1,3 +1,5 @@
+use std::{convert::Infallible, time::Duration};
+
 use esp_idf_svc::{
     hal::sleep::{DeepSleep, LightSleep},
     sys::{self, EspError, esp},
@@ -38,3 +40,38 @@ fn modem_sleep() -> Result<(), EspError> {
     esp!(unsafe { sys::esp_wifi_set_ps(sys::wifi_ps_type_t_WIFI_PS_MIN_MODEM) })
 }
 
+/// Pause the CPU for `duration`. RAM is retained, so execution carries on from
+/// here once the timer wakes the chip.
+#[allow(dead_code)]
+fn light_sleep(duration: Duration) -> Result<(), EspError> {
+    LightSleep::new()?.wakeup_on_timer(duration)?.enter()
+}
+
+/// Power off everything except the RTC domain for `duration`. Waking up is a
+/// full reboot, so this only returns if setting up the wake up timer fails.
+#[allow(dead_code)]
+fn deep_sleep(duration: Duration) -> Result<Infallible, EspError> {
+    DeepSleep::new()?.wakeup_on_timer(duration)?.enter()
+}
+
+/// Deep sleep with the RTC peripherals and RTC memory also powered off, leaving
+/// only the RTC timer running. Waking up is a full reboot, so this only returns
+/// if powering down a domain or setting up the wake up timer fails.
+///
+/// There is no safe wrapper for `esp_sleep_pd_config`, so that part is still
+/// `unsafe`.
+#[allow(dead_code)]
+fn hibernate(duration: Duration) -> Result<Infallible, EspError> {
+    let domains = [
+        sys::esp_sleep_pd_domain_t_ESP_PD_DOMAIN_RTC_PERIPH,
+        sys::esp_sleep_pd_domain_t_ESP_PD_DOMAIN_RTC_SLOW_MEM,
+        sys::esp_sleep_pd_domain_t_ESP_PD_DOMAIN_RTC_FAST_MEM,
+        sys::esp_sleep_pd_domain_t_ESP_PD_DOMAIN_XTAL,
+    ];
+
+    for domain in domains {
+        esp!(unsafe { sys::esp_sleep_pd_config(domain, sys::esp_sleep_pd_option_t_ESP_PD_OPTION_OFF) })?;
+    }
+
+    deep_sleep(duration)
+}
