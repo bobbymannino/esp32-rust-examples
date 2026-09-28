@@ -5,13 +5,17 @@ reached via HTTP requests from another device on the same network.
 
 ## Endpoints
 
-| Method | Path       | Response                                         |
-| ------ | ---------- | ------------------------------------------------ |
-| GET    | `/api/rtc` | `{"rtc":1234}`, the RTC in seconds since the Unix epoch (UTC) |
+| Method | Path       | Request                                    | Response                                                      |
+| ------ | ---------- | ------------------------------------------ | ------------------------------------------------------------- |
+| GET    | `/api/rtc` |                                            | `{"rtc":1234}`, the RTC in seconds since the Unix epoch (UTC) |
+| POST   | `/api/rtc` | `text/plain` seconds since the Unix epoch  | `{"rtc":1234}`, the RTC after it has been set                 |
+
+A bad POST gets `415` if the body is not `text/plain`, `413` if it is too long,
+and `400` if it is not a whole number of seconds.
 
 > [!NOTE]
-> Nothing sets the clock, so it counts up from 0 at boot rather than holding
-> the real time.
+> The clock counts up from 0 at boot until something sets it, and it resets on
+> every reboot.
 
 ## Usage
 
@@ -27,4 +31,10 @@ from another device on the same network:
 
 ```sh
 curl http://<ip>/api/rtc
+```
+
+To set the RTC to the current time:
+
+```sh
+curl -H "Content-Type: text/plain" -d "$(date +%s)" http://<ip>/api/rtc
 ```
