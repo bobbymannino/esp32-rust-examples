@@ -20,7 +20,8 @@ a set of useful examples for concepts such as WiFi, bluetooth, UART, etc.
 | WiFi WPA Enterprise                | Connect to WiFi using WPA Enterprise authentication |    ❌    |
 | [Bluetooth](crates/bluetooth/)     | Connect to Bluetooth devices                        |    ✅    |
 | [API Client](crates/api-client/)   | Execute HTTP requests                               |    ✅    |
-| API Server                         | Host HTTP endpoints on the ESP32                    |    ❌    |
+| [API Server](crates/api-server/)   | Host HTTP endpoints on the ESP32                    |    ✅    |
 | [Power Modes](crates/power-modes/) | Different power and sleep modes                     |    ✅    |
 | ADXL345                            | Implement controls for the ADXL345 component        |    ❌    |
 | EC11                               | Implement controls for the EC11 component           |    ❌    |
+| TCP Server                         | Create a TCP server on the ESP32                    |    ❌    |

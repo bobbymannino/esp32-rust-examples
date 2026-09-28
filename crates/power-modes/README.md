@@ -76,7 +76,3 @@ Wake sources:
 
 - Timer
 - Multiple RTC GPIOs (`ext1`)
-
-## Usage
-
-_TODO_
