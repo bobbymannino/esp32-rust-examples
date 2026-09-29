@@ -11,7 +11,12 @@ const ADDRESS_BW_RATE: u8 = 0x2C;
 /// The address of the data format register
 const ADDRESS_DATA_FORMAT: u8 = 0x31;
 /// The address of the I2C device
-const ADDRESS_I2C: u8 = 0x1D;
+const ADDRESS_I2C: u8 = 0x53;
+
+/// The full resolution bit in the data format register
+const DATA_FORMAT_FULL_RES: u8 = 0b1000;
+/// The value for setting the power control to measure mode
+const POWER_CTL_MEASURE: u8 = 0b1000;
 
 pub struct ADXL345<'d> {
     i2c_driver: I2cDriver<'d>,
@@ -34,24 +39,24 @@ impl<'d> ADXL345<'d> {
     pub fn new(i2c_driver: I2cDriver<'d>) -> Result<Self> {
         let timeout = TickType::new_millis(100).ticks();
 
+        // TODO: chekc device id
+        // TODO: read values from xyz
+
         Ok(Self { i2c_driver, timeout })
     }
 
     pub fn set_measurement_range(&mut self, range: MeasurementRange) -> Result<()> {
-        let current = self.read_command(ADDRESS_DATA_FORMAT)?;
-        let new = current & 0b1111_0000 | range as u8;
-        self.write_command(ADDRESS_DATA_FORMAT, new)
+        self.write_command(ADDRESS_DATA_FORMAT, DATA_FORMAT_FULL_RES | range as u8)
     }
 
     pub fn turn_on_measure_mode(&mut self) -> Result<()> {
-        let current = self.read_command(ADDRESS_POWER_CTL)?;
-        let new = current | 0b0000_1000;
-        self.write_command(ADDRESS_POWER_CTL, new)
+        self.write_command(ADDRESS_POWER_CTL, POWER_CTL_MEASURE)
     }
 
     fn read_command(&mut self, address: u8) -> Result<u8> {
         let mut buffer = [0u8; 1];
-        self.i2c_driver.read(address, &mut buffer, self.timeout)?;
+        self.i2c_driver
+            .write_read(ADDRESS_I2C, &[address], &mut buffer, self.timeout)?;
         Ok(buffer[0])
     }
 
