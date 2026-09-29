@@ -49,7 +49,7 @@ impl<'d> ADXL345<'d> {
         self.write_command(ADDRESS_POWER_CTL, new)
     }
 
-    pub fn read_command(&mut self, address: u8) -> Result<u8> {
+    fn read_command(&mut self, address: u8) -> Result<u8> {
         let mut buffer = [0u8; 1];
         self.i2c_driver.read(address, &mut buffer, self.timeout)?;
         Ok(buffer[0])
