@@ -40,7 +40,7 @@ const POWER_CTL_STANDBY: u8 = 0b0000;
 /// The device ID
 const DEVICE_ID: u8 = 0xE5;
 /// The bit for enabling ACTIVITY in the INT_ENABLE register
-const INT_ENABLE_ACTIVITY: u8 = 0b001_0000;
+const INT_ENABLE_ACTIVITY: u8 = 0b0001_0000;
 /// The bit for enabling ACT_X in the ACT_INACT_CTL register
 const ACT_INACT_CTL_ACT_X_ENABLED: u8 = 0b0100_0000;
 /// The bit for enabling ACT_Y in the ACT_INACT_CTL register
@@ -83,7 +83,7 @@ impl<'d> ADXL345<'d> {
         let timeout = TickType::new_millis(100).ticks();
         let mut adxl = Self { i2c_driver, timeout };
 
-        if !adxl.read_command(ADDRESS_DEVICE_ID)?.eq(&DEVICE_ID) {
+        if adxl.read_command(ADDRESS_DEVICE_ID)? != DEVICE_ID {
             bail!("Device ID does not match");
         }
 

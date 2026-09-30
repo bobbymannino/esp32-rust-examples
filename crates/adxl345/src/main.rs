@@ -64,10 +64,9 @@ fn run() -> anyhow::Result<()> {
             log::info!("Putting into light sleep");
             FreeRtos::delay_ms(100);
             match LightSleep::new()?.wakeup_on_gpio(&int_pin, Level::High)?.enter() {
-                Ok(()) => log::info!("Entered light sleep"),
+                Ok(()) => log::info!("Woke up from light sleep"),
                 Err(error) => log::error!("Failed to light sleep: {error}"),
             }
-            log::info!("Woke up from light sleep");
             match adxl345.get_interrupt_source() {
                 Ok(source) => log::info!("Interrupt source: {:?}", source),
                 Err(error) => log::error!("{error}"),
