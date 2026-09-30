@@ -37,8 +37,6 @@ fn run() -> anyhow::Result<()> {
     let i2c = I2cDriver::new(peripherals.i2c0, sda, scl, &config)?;
 
     let mut adxl345 = ADXL345::new(i2c)?;
-    adxl345.set_measurement_range(MeasurementRange::G8)?;
-    adxl345.turn_on_measure_mode()?;
     log::info!("ADXL345 ready");
 
     loop {

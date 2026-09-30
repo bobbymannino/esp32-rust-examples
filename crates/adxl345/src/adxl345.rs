@@ -38,8 +38,13 @@ pub enum MeasurementRange {
 }
 
 impl<'d> ADXL345<'d> {
+    /// Create a new ADXL345 instance with the given I2C driver. This will also
+    /// set the measurement range to ±4g and turn on measure mode.
     pub fn new(i2c_driver: I2cDriver<'d>) -> Result<Self> {
         let timeout = TickType::new_millis(100).ticks();
+
+        adxl345.set_measurement_range(MeasurementRange::G4)?;
+        adxl345.turn_on_measure_mode()?;
 
         // TODO: chekc device id
         // TODO: read values from xyz
