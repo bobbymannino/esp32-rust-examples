@@ -90,8 +90,6 @@ impl<'d> ADXL345<'d> {
         adxl.set_measurement_range(MeasurementRange::G4)?;
         adxl.turn_on_measure_mode()?;
 
-        // TODO: interupt pins
-
         Ok(adxl)
     }
 
@@ -123,7 +121,7 @@ impl<'d> ADXL345<'d> {
         let y = i16::from_le_bytes([buffer[2], buffer[3]]);
         let z = i16::from_le_bytes([buffer[4], buffer[5]]);
 
-        Ok((x, y, z))
+        Ok((x * 4, y * 4, z * 4))
     }
 
     /// Enable the activity interrupt with the given threshold. The threshold
