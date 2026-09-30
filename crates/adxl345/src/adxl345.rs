@@ -17,6 +17,8 @@ const ADDRESS_I2C: u8 = 0x53;
 const DATA_FORMAT_FULL_RES: u8 = 0b1000;
 /// The value for setting the power control to measure mode
 const POWER_CTL_MEASURE: u8 = 0b1000;
+/// The value for setting the power control to standby mode
+const POWER_CTL_STANDBY: u8 = 0b0000;
 
 pub struct ADXL345<'d> {
     i2c_driver: I2cDriver<'d>,
@@ -41,6 +43,7 @@ impl<'d> ADXL345<'d> {
 
         // TODO: chekc device id
         // TODO: read values from xyz
+        // TODO: interupt pins
 
         Ok(Self { i2c_driver, timeout })
     }
@@ -51,6 +54,10 @@ impl<'d> ADXL345<'d> {
 
     pub fn turn_on_measure_mode(&mut self) -> Result<()> {
         self.write_command(ADDRESS_POWER_CTL, POWER_CTL_MEASURE)
+    }
+
+    pub fn turn_on_standby_mode(&mut self) -> Result<()> {
+        self.write_command(ADDRESS_POWER_CTL, POWER_CTL_STANDBY)
     }
 
     fn read_command(&mut self, address: u8) -> Result<u8> {
