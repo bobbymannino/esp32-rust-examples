@@ -56,6 +56,8 @@ fn run() -> anyhow::Result<()> {
                 Level::High => log::info!("Interrupt pin is high"),
                 Level::Low => log::info!("Interrupt pin is low"),
             }
+            // This clears the ADDRESS_INT_SOURCE register
+            adxl345.get_interrupt_source()?;
             log::info!("Putting into light sleep");
             FreeRtos::delay_ms(100);
             LightSleep::new()?
