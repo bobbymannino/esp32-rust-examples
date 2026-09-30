@@ -5,7 +5,7 @@ use esp_idf_svc::hal::{
     units::Hertz,
 };
 
-use crate::adxl345::{ADXL345, MeasurementRange};
+use crate::adxl345::ADXL345;
 
 mod adxl345;
 
@@ -40,6 +40,8 @@ fn run() -> anyhow::Result<()> {
     log::info!("ADXL345 ready");
 
     loop {
-        FreeRtos::delay_ms(200);
+        let (x, y, z) = adxl345.read_raw()?;
+        log::info!("x: {}, y: {}, z: {}", x, y, z);
+        FreeRtos::delay_ms(100);
     }
 }
