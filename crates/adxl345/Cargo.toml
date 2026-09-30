@@ -8,6 +8,7 @@ resolver = "2"
 log = "0.4"
 esp-idf-svc = "0.53"
 anyhow = "1.0"
+bitflags = "2"
 
 [profile.dev]
 opt-level = "z"

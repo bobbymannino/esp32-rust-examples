@@ -1,4 +1,5 @@
 use anyhow::{Result, bail};
+use bitflags::bitflags;
 use esp_idf_svc::{
     hal::{delay::TickType, i2c::I2cDriver},
     sys::TickType_t,
@@ -49,15 +50,6 @@ const ACT_INACT_CTL_ACT_Y_ENABLED: u8 = 0b0010_0000;
 const ACT_INACT_CTL_ACT_Z_ENABLED: u8 = 0b0001_0000;
 /// The bit for enabling AC in the ACT_INACT_CTL ACT register
 const ACT_INACT_CTL_ACT_AC_ENABLED: u8 = 0b1000_0000;
-
-/// The bit for whether single tap is in the INT_SOURCE register
-const INT_SOURCE_SINGLE_TAP: u8 = 0b0100_0000;
-/// The bit for whether double tap is in the INT_SOURCE register
-const INT_SOURCE_DOUBLE_TAP: u8 = 0b0010_0000;
-/// The bit for whether activity is in the INT_SOURCE register
-const INT_SOURCE_ACTIVITY: u8 = 0b0001_0000;
-/// The bit for whether inactivity is in the INT_SOURCE register
-const INT_SOURCE_INACTIVITY: u8 = 0b0000_1000;
 
 pub struct ADXL345<'d> {
     i2c_driver: I2cDriver<'d>,
@@ -151,21 +143,11 @@ impl<'d> ADXL345<'d> {
         Ok(())
     }
 
-    /// Read and decode the [`ADDRESS_INT_SOURCE`] register.
+    /// Read and decode the [`ADDRESS_INT_SOURCE`] register. Several sources
+    /// can be set at once, and reading the register clears most of them.
     pub fn get_interrupt_source(&mut self) -> Result<InterruptSource> {
         let int_source = self.read_command(ADDRESS_INT_SOURCE)?;
-
-        if int_source & INT_SOURCE_SINGLE_TAP == INT_SOURCE_SINGLE_TAP {
-            return Ok(InterruptSource::SingleTap);
-        } else if int_source & INT_SOURCE_DOUBLE_TAP == INT_SOURCE_DOUBLE_TAP {
-            return Ok(InterruptSource::DoubleTap);
-        } else if int_source & INT_SOURCE_ACTIVITY == INT_SOURCE_ACTIVITY {
-            return Ok(InterruptSource::Activity);
-        } else if int_source & INT_SOURCE_INACTIVITY == INT_SOURCE_INACTIVITY {
-            return Ok(InterruptSource::Inactivity);
-        } else {
-            bail!("Unknown interrupt source: {int_source:#08b}");
-        }
+        Ok(InterruptSource::from_bits_retain(int_source))
     }
 
     /// Read a single byte from the given address.
@@ -183,12 +165,18 @@ impl<'d> ADXL345<'d> {
     }
 }
 
-/// A type of interrupt source for [`ADXL345`].
-#[derive(Debug)]
-pub enum InterruptSource {
-    SingleTap,
-    DoubleTap,
-    Activity,
-    Inactivity,
-    DataReady,
+bitflags! {
+    /// The interrupt sources reported by the INT_SOURCE register of the
+    /// [`ADXL345`].
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct InterruptSource: u8 {
+        const DATA_READY = 0b1000_0000;
+        const SINGLE_TAP = 0b0100_0000;
+        const DOUBLE_TAP = 0b0010_0000;
+        const ACTIVITY = 0b0001_0000;
+        const INACTIVITY = 0b0000_1000;
+        const FREE_FALL = 0b0000_0100;
+        const WATERMARK = 0b0000_0010;
+        const OVERRUN = 0b0000_0001;
+    }
 }

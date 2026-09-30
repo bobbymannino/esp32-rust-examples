@@ -68,7 +68,10 @@ fn run() -> anyhow::Result<()> {
                 Err(error) => log::error!("Failed to light sleep: {error}"),
             }
             match adxl345.get_interrupt_source() {
-                Ok(source) => log::info!("Interrupt source: {:?}", source),
+                Ok(sources) => {
+                    let names: Vec<&str> = sources.iter_names().map(|(name, _)| name).collect();
+                    log::info!("Interrupt sources: {names:?}");
+                }
                 Err(error) => log::error!("{error}"),
             }
             FreeRtos::delay_ms(100);
