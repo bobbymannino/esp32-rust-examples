@@ -11,6 +11,8 @@ use esp_idf_svc::hal::{
 
 use crate::adxl345::ADXL345;
 
+const MG_THRESHOLD: i16 = 500;
+
 fn main() {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
@@ -42,20 +44,18 @@ fn run() -> anyhow::Result<()> {
     log::info!("ADXL345 ready");
     let int_pin = PinDriver::input(peripherals.pins.gpio23, Pull::Down)?;
 
-    let mut count = 0;
     loop {
         let (x, y, z) = adxl345.read_raw()?;
         log::info!("x: {}, y: {}, z: {}", x, y, z);
-        FreeRtos::delay_ms(100);
-        count += 1;
-
-        if count.eq(&5) {
-            match int_pin.get_level() {
-                Level::High => log::info!("Interrupt pin is high"),
-                Level::Low => log::info!("Interrupt pin is low"),
-            }
+        if x.abs() > MG_THRESHOLD || y.abs() > MG_THRESHOLD || z.abs() > MG_THRESHOLD {
+            FreeRtos::delay_ms(100);
+        } else {
             log::info!("Enabling interupt");
-            adxl345.enable_interupt_activity(333.0)?;
+            adxl345.enable_interupt_activity(f32::from(MG_THRESHOLD))?;
+            match int_pin.get_level() {
+                Level::High => log::info!("Interrupt pin set to high"),
+                Level::Low => log::info!("Interrupt pin set to low"),
+            }
             log::info!("Putting into light sleep");
             FreeRtos::delay_ms(100);
             LightSleep::new()?.wakeup_on_gpio(&int_pin, Level::High)?.enter()?;
@@ -64,8 +64,7 @@ fn run() -> anyhow::Result<()> {
                 Ok(source) => log::info!("Interrupt source: {:?}", source),
                 Err(error) => log::error!("{error}"),
             }
-            count = 0;
-            FreeRtos::delay_ms(1_000);
+            FreeRtos::delay_ms(100);
         }
     }
 }

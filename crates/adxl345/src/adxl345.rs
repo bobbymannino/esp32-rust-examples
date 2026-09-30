@@ -110,6 +110,10 @@ impl<'d> ADXL345<'d> {
     }
 
     /// Read the raw DATAX/DATAY/DATAZ buffers
+    ///
+    /// # Returns
+    ///
+    /// (x, y, x) measurements in mg
     pub fn read_raw(&mut self) -> Result<(i16, i16, i16)> {
         let mut buffer = [0u8; 6];
         self.i2c_driver
