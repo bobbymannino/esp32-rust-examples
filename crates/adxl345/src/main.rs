@@ -45,7 +45,11 @@ fn run() -> anyhow::Result<()> {
     let int_pin = PinDriver::input(peripherals.pins.gpio23, Pull::Down)?;
 
     loop {
-        let (x, y, z) = adxl345.read_raw()?;
+        let Ok((x, y, z)) = adxl345.read_raw() else {
+            log::error!("Failed to read measurements");
+            FreeRtos::delay_ms(100);
+            continue;
+        };
         log::info!("x: {}, y: {}, z: {}", x, y, z);
         if x.abs() > MG_THRESHOLD || y.abs() > MG_THRESHOLD || z.abs() > MG_THRESHOLD {
             FreeRtos::delay_ms(100);
