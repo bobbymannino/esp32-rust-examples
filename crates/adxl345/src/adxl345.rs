@@ -143,6 +143,9 @@ impl<'d> ADXL345<'d> {
         )?;
         self.write_command(ADDRESS_INT_ENABLE, INT_ENABLE_ACTIVITY)?;
 
+        // This clears the ADDRESS_INT_SOURCE register
+        self.get_interrupt_source().ok();
+
         Ok(())
     }
 
@@ -150,12 +153,16 @@ impl<'d> ADXL345<'d> {
     pub fn get_interrupt_source(&mut self) -> Result<InterruptSource> {
         let int_source = self.read_command(ADDRESS_INT_SOURCE)?;
 
-        match int_source {
-            INT_SOURCE_SINGLE_TAP => Ok(InterruptSource::SingleTap),
-            INT_SOURCE_DOUBLE_TAP => Ok(InterruptSource::DoubleTap),
-            INT_SOURCE_ACTIVITY => Ok(InterruptSource::Activity),
-            INT_SOURCE_INACTIVITY => Ok(InterruptSource::Inactivity),
-            _ => bail!("Unknown interrupt source"),
+        if int_source & INT_SOURCE_SINGLE_TAP == INT_SOURCE_SINGLE_TAP {
+            return Ok(InterruptSource::SingleTap);
+        } else if int_source & INT_SOURCE_DOUBLE_TAP == INT_SOURCE_DOUBLE_TAP {
+            return Ok(InterruptSource::DoubleTap);
+        } else if int_source & INT_SOURCE_ACTIVITY == INT_SOURCE_ACTIVITY {
+            return Ok(InterruptSource::Activity);
+        } else if int_source & INT_SOURCE_INACTIVITY == INT_SOURCE_INACTIVITY {
+            return Ok(InterruptSource::Inactivity);
+        } else {
+            bail!("Unknown interrupt source: {int_source:#08b}");
         }
     }
 
@@ -181,4 +188,5 @@ pub enum InterruptSource {
     DoubleTap,
     Activity,
     Inactivity,
+    DataReady,
 }

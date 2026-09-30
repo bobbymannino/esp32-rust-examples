@@ -50,22 +50,20 @@ fn run() -> anyhow::Result<()> {
         count += 1;
 
         if count.eq(&5) {
-            log::info!("Enabling interupt");
-            adxl345.enable_interupt_activity(1_000.0)?;
             match int_pin.get_level() {
                 Level::High => log::info!("Interrupt pin is high"),
                 Level::Low => log::info!("Interrupt pin is low"),
             }
-            // This clears the ADDRESS_INT_SOURCE register
-            adxl345.get_interrupt_source()?;
+            log::info!("Enabling interupt");
+            adxl345.enable_interupt_activity(333.0)?;
             log::info!("Putting into light sleep");
             FreeRtos::delay_ms(100);
-            LightSleep::new()?
-                .wakeup_on_gpio(&int_pin, !int_pin.get_level())?
-                .enter()?;
+            LightSleep::new()?.wakeup_on_gpio(&int_pin, Level::High)?.enter()?;
             log::info!("Woke up from light sleep");
-            let int_source = adxl345.get_interrupt_source()?;
-            log::info!("Interrupt source: {:?}", int_source);
+            match adxl345.get_interrupt_source() {
+                Ok(source) => log::info!("Interrupt source: {:?}", source),
+                Err(error) => log::error!("{error}"),
+            }
             count = 0;
             FreeRtos::delay_ms(1_000);
         }
