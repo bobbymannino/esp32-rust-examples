@@ -127,7 +127,7 @@ impl<'d> ADXL345<'d> {
     /// Enable the activity interrupt with the given threshold. The threshold
     /// should be given in mg ranging from 0 to 16,000
     pub fn enable_interupt_activity(&mut self, threshold: f32) -> Result<()> {
-        if threshold < 0.0 || threshold > 16_000.0 {
+        if !(0.0..=16_000.0).contains(&threshold) {
             bail!("Threshold out or range: {threshold}");
         }
 

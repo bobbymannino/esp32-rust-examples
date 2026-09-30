@@ -11,7 +11,8 @@ use esp_idf_svc::hal::{
 
 use crate::adxl345::ADXL345;
 
-const MG_THRESHOLD: i16 = 500;
+/// The threshold to trigger an interrupt, in mg
+const MG_THRESHOLD: i16 = 1_000;
 
 fn main() {
     esp_idf_svc::sys::link_patches();
