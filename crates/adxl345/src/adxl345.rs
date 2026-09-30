@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use esp_idf_svc::{
     hal::{delay::TickType, i2c::I2cDriver},
     sys::TickType_t,
@@ -12,6 +12,8 @@ const ADDRESS_BW_RATE: u8 = 0x2C;
 const ADDRESS_DATA_FORMAT: u8 = 0x31;
 /// The address of the I2C device
 const ADDRESS_I2C: u8 = 0x53;
+/// The address of the device ID register
+const ADDRESS_DEVICE_ID: u8 = 0x00;
 
 /// The full resolution bit in the data format register
 const DATA_FORMAT_FULL_RES: u8 = 0b1000;
@@ -19,6 +21,8 @@ const DATA_FORMAT_FULL_RES: u8 = 0b1000;
 const POWER_CTL_MEASURE: u8 = 0b1000;
 /// The value for setting the power control to standby mode
 const POWER_CTL_STANDBY: u8 = 0b0000;
+/// The device ID
+const DEVICE_ID: u8 = 0xE5;
 
 pub struct ADXL345<'d> {
     i2c_driver: I2cDriver<'d>,
@@ -42,15 +46,19 @@ impl<'d> ADXL345<'d> {
     /// set the measurement range to ±4g and turn on measure mode.
     pub fn new(i2c_driver: I2cDriver<'d>) -> Result<Self> {
         let timeout = TickType::new_millis(100).ticks();
+        let mut adxl = Self { i2c_driver, timeout };
 
-        adxl345.set_measurement_range(MeasurementRange::G4)?;
-        adxl345.turn_on_measure_mode()?;
+        if !adxl.read_command(ADDRESS_DEVICE_ID)?.eq(&DEVICE_ID) {
+            bail!("Device ID does not match");
+        }
 
-        // TODO: chekc device id
+        adxl.set_measurement_range(MeasurementRange::G4)?;
+        adxl.turn_on_measure_mode()?;
+
         // TODO: read values from xyz
         // TODO: interupt pins
 
-        Ok(Self { i2c_driver, timeout })
+        Ok(adxl)
     }
 
     pub fn set_measurement_range(&mut self, range: MeasurementRange) -> Result<()> {
