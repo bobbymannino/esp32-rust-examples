@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::peripherals::Peripherals, nvs::EspDefaultNvsPartition};
 
 mod tcp;
@@ -10,9 +11,7 @@ mod wifi;
 /// ```
 const SSID: &str = env!("WIFI_SSID", "set WIFI_SSID to the network to join");
 const PASSWORD: &str = env!("WIFI_PASSWORD", "set WIFI_PASSWORD to the network's password");
-const PORT: u16 = env!("PORT", "Set PORT to the desired port number")
-    .parse()
-    .expect("PORT should be a valid u16");
+const PORT: &str = env!("PORT", "Set PORT to the desired port number");
 
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -25,6 +24,10 @@ fn main() {
 }
 
 fn run() -> anyhow::Result<()> {
+    let port = PORT
+        .parse::<u16>()
+        .with_context(|| format!("Port should be a valid u16: {PORT}"))?;
+
     let peripherals = Peripherals::take()?;
     let sysloop = EspSystemEventLoop::take()?;
     let nvs = EspDefaultNvsPartition::take()?;
@@ -36,5 +39,5 @@ fn run() -> anyhow::Result<()> {
     log::info!("Listening on {ip}:{PORT}, try `nc {ip} {PORT}`");
 
     // Only returns if the listener itself fails, so `wifi` stays alive for the life of the server.
-    tcp::serve(PORT)
+    tcp::serve(port)
 }
