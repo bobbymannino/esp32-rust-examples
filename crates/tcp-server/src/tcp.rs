@@ -46,4 +46,30 @@ pub fn serve(port: u16) -> Result<()> {
 
 /// Echoes everything `stream` sends back to it until the client disconnects or goes idle.
 fn handle_client(mut stream: TcpStream) -> Result<()> {
+    let peer = stream.peer_addr()?;
+    log::info!("{peer} connected");
+
+    stream.set_read_timeout(Some(IDLE_TIMEOUT))?;
+    stream.write_all(b"Hello from the ESP32, everything you send will be echoed back\r\n")?;
+
+    let mut buf = [0u8; 512];
+    loop {
+        let len = match stream.read(&mut buf) {
+            // A read of zero bytes means the client closed its end of the connection.
+            Ok(0) => break,
+            Ok(len) => len,
+            Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => {
+                log::info!("{peer} was idle for {}s, disconnecting", IDLE_TIMEOUT.as_secs());
+                break;
+            }
+            Err(e) => return Err(e.into()),
+        };
+
+        log::info!("{peer} sent {len} bytes");
+        // `read` can return any amount, so `write_all` keeps writing until every byte has gone out.
+        stream.write_all(&buf[..len])?;
+    }
+
+    log::info!("{peer} disconnected");
+    Ok(())
 }
