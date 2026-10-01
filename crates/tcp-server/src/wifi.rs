@@ -32,7 +32,6 @@ pub fn connect<'a>(
             .try_into()
             .map_err(|_| anyhow!("password must be at most 64 bytes, this one is {}", password.len()))?,
         auth_method,
-        pmf_cfg: pmf_for(auth_method),
         // Knowing the channel up front lets the driver skip straight to it instead of sweeping all of them.
         channel: access_point.as_ref().map(|ap| ap.channel),
         ..Default::default()
@@ -85,27 +84,12 @@ fn find_access_point(wifi: &mut BlockingWifi<EspWifi<'_>>, ssid: &str) -> Result
 
 /// Picks the authentication method to connect with.
 ///
-/// The access point decides which of WPA2 and WPA3 is on offer, so prefer whatever it advertises. Falling back to
-/// [`AuthMethod::WPA2WPA3Personal`] keeps a hidden network working, because that setting is a
-/// *minimum*: the driver accepts WPA2 and WPA3 access points, and refuses anything weaker.
+/// The access point decides which of WPA2 is on offer, so prefer whatever it advertises. Falling back to
+/// [`AuthMethod::WPA2Personal`] keeps a hidden network working, because that setting is a
+/// *minimum*: the driver accepts WPA2 access points, and refuses anything weaker.
 fn negotiate_auth_method(access_point: Option<&AccessPointInfo>, ssid: &str) -> AuthMethod {
     match access_point.and_then(|ap| ap.auth_method) {
-        Some(AuthMethod::None) => {
-            log::warn!("{ssid} is an open network, but this example is built for WPA2/WPA3");
-            AuthMethod::WPA2WPA3Personal
-        }
+        Some(AuthMethod::None) | None => AuthMethod::WPA2Personal,
         Some(auth_method) => auth_method,
-        None => AuthMethod::WPA2WPA3Personal,
-    }
-}
-
-/// Decides how to advertise Protected Management Frames, which WPA3 is built on top of.
-///
-/// PMF stops an attacker forging the unencrypted management frames that WPA2 leaves in the clear, which is what makes
-/// deauthentication attacks possible. WPA3 makes it mandatory, so require it there. Anywhere else only advertise it:
-/// requiring PMF against a WPA2-only access point that does not support it means no connection at all.
-fn pmf_for(auth_method: AuthMethod) -> PmfConfiguration {
-    PmfConfiguration::Capable {
-        required: auth_method == AuthMethod::WPA3Personal,
     }
 }
