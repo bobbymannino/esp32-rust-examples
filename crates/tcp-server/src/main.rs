@@ -1,5 +1,6 @@
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::peripherals::Peripherals, nvs::EspDefaultNvsPartition};
 
+mod tcp;
 mod wifi;
 
 /// Credentials are baked in at compile time so they never have to live in the repository.
@@ -31,5 +32,9 @@ fn run() -> anyhow::Result<()> {
     // WiFi disconnects when this is dropped, so it has to stay alive for as long as the server runs.
     let wifi = wifi::connect(peripherals, sysloop, nvs, SSID, PASSWORD)?;
 
-    Ok(())
+    let ip = wifi.wifi().sta_netif().get_ip_info()?.ip;
+    log::info!("Listening on {ip}:{PORT}, try `nc {ip} {PORT}`");
+
+    // Only returns if the listener itself fails, so `wifi` stays alive for the life of the server.
+    tcp::serve(PORT)
 }
