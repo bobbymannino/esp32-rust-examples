@@ -24,5 +24,5 @@ a set of useful examples for concepts such as WiFi, bluetooth, UART, etc.
 | [Power Modes](crates/power-modes/) | Different power and sleep modes                     |    ✅    |
 | [ADXL345](crates/adxl345/)         | Implement controls for the ADXL345 component        |    ✅    |
 | EC11                               | Implement controls for the EC11 component           |    ❌    |
-| TCP Server                         | Create a TCP server on the ESP32                    |    ❌    |
+| [TCP Server](crates/tcp-server/)   | Create a TCP server on the ESP32                    |    ✅    |
 | Battery Management System          | Create a BMS that can power the ESP32 without mains |    ❌    |
